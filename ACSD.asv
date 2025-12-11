@@ -58,7 +58,7 @@ disp(' 3 - Sine');
 input_type = input('Your choice: ');
 
 % calculate and plot response 
-t = 0:0.01:20 
+t = 0:0.01:20;
 figure('Name','Control System Response', 'Position', [100 100 1200 800]);
 
 switch input_type
@@ -152,4 +152,50 @@ switch input_type
       
     otherwise
         error('Invalid input!');
+end
+
+% calculate poles and zeros
+figure('Name', 'System Characteristics', 'Position', [150 150 800 600]);
+
+poles = pole(sys_total);
+zeros_sys = zero(sys_total);
+
+subplot(2,2,1);
+pzmap(sys_total);
+title('Pole-Zero Map', 'FontSize', 12);
+grid on;
+
+subplot(2,2,2);
+bode(sys_total);
+title('Bode Plot', 'FontSize', 12);
+grid on;
+
+subplot(2,2,3);
+nyquist(sys_total);
+title('Nyquist Plot', 'FontSize', 12);
+grid on;
+
+subplot(2,2,4);
+rlocus(sys_total);
+title('Root Locus', 'FontSize', 12);
+grid on;
+
+% display system info
+disp(' ');
+disp('=== System Specifications ===');
+fprintf('Number of poles: %d\n', length(poles));
+fprintf('Number of zeros: %d\n', length(zeros_sys));
+disp(' ');
+disp('System poles:');
+disp(poles);
+if ~isempty(zeros_sys)
+    disp('System zeros:');
+    disp(zeros_sys);
+end
+
+% stability check
+if all(real(poles) < 0)
+    disp('The system is stable');
+else
+    disp('The system is unstable');
 end

@@ -179,3 +179,23 @@ subplot(2,2,4);
 rlocus(sys_total);
 title('Root Locus', 'FontSize', 12);
 grid on;
+
+% display system info
+disp(' ');
+disp('=== System Specifications ===');
+fprintf('Number of poles: %d\n', length(poles));
+fprintf('Number of zeros: %d\n', length(zeros_sys));
+disp(' ');
+disp('System poles:');
+disp(poles);
+if ~isempty(zeros_sys)
+    disp('System zeros:');
+    disp(zeros_sys);
+end
+
+% stability check
+if all(real(poles) < 0)
+    disp('The system is stable');
+else
+    disp('The system is unstable');
+end
