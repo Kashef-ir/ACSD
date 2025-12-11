@@ -153,3 +153,29 @@ switch input_type
     otherwise
         error('Invalid input!');
 end
+
+% calculate poles and zeros
+figure('Name', 'System Characteristics', 'Position', [150 150 800 600]);
+
+poles = pole(sys_total);
+zeros_sys = zero(sys_total);
+
+subplot(2,2,1);
+pzmap(sys_total);
+title('Pole-Zero Map', 'FontSize', 12);
+grid on;
+
+subplot(2,2,2);
+bode(sys_total);
+title('Bode Plot', 'FontSize', 12);
+grid on;
+
+subplot(2,2,3);
+nyquist(sys_total);
+title('Nyquist Plot', 'FontSize', 12);
+grid on;
+
+subplot(2,2,4);
+rlocus(sys_total);
+title('Root Locus', 'FontSize', 12);
+grid on;
