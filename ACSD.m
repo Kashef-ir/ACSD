@@ -154,6 +154,101 @@ switch input_type
         error('Invalid input!');
 end
 
+% calculate and display numerical performance metrics
+disp(' ');
+disp('Numerical Performance Metrics');
+
+try
+    if input_type == 1 
+        info = stepinfo(sys_total);
+        
+        disp(' ');
+        disp('=== Step Response Characteristics ===');
+        fprintf('Rise Time (Tr):          %.4f sec\n', info.RiseTime);
+        fprintf('Settling Time (Ts):      %.4f sec\n', info.SettlingTime);
+        fprintf('Overshoot:               %.2f %%\n', info.Overshoot);
+        fprintf('Undershoot:              %.2f %%\n', info.Undershoot);
+        fprintf('Peak Value:              %.4f\n', info.Peak);
+        fprintf('Peak Time (Tp):          %.4f sec\n', info.PeakTime);
+        fprintf('Steady State Value:      %.4f\n', dcgain(sys_total));
+        
+        % calculate steady state error
+        ss_value = dcgain(sys_total);
+        if ~isnan(ss_value) && ~isinf(ss_value)
+            ess = 1 - ss_value;  % For unit step
+            fprintf('Steady State Error:      %.4f (%.2f%%)\n', ess, abs(ess)*100);
+        else
+            fprintf('Steady State Error:      Cannot be calculated (system unstable or improper)\n');
+        end
+        
+    elseif input_type == 2  % ramp response
+        disp(' ');
+        disp('--- Ramp Response Characteristics ---');
+        
+        % calculate steady state error for ramp
+        s = tf('s');
+        try
+            Kv = dcgain(sys_total * s);
+            if ~isnan(Kv) && ~isinf(Kv) && Kv ~= 0
+                ess_ramp = 1/Kv;
+                fprintf('Velocity Error Constant (Kv): %.4f\n', Kv);
+                fprintf('Steady State Error:           %.4f\n', ess_ramp);
+            else
+                fprintf('Steady State Error:           Infinite (Type 0 system)\n');
+            end
+        catch
+            fprintf('Steady State Error:           Cannot be calculated\n');
+        end
+        
+        % calculate final tracking error
+        if length(y) > 0
+            final_output_slope = (y(end) - y(end-100)) / (t(end) - t(end-100));
+            fprintf('Final Output Slope:           %.4f\n', final_output_slope);
+            fprintf('Input Slope:                  1.0\n');
+            fprintf('Tracking Error:               %.4f\n', abs(1 - final_output_slope));
+        end
+        
+    elseif input_type == 3  % sinusoidal response
+        disp(' ');
+        disp('--- Sinusoidal Response Characteristics ---');
+        
+        % find steady-state portion
+        ss_start = floor(0.7 * length(y));
+        y_ss = y(ss_start:end);
+        t_ss = t(ss_start:end);
+        
+        % calculate amplitude
+        output_amplitude = (max(y_ss) - min(y_ss)) / 2;
+        input_amplitude = 1.0;  % sin has amplitude 1
+        
+        % calculate gain
+        gain = output_amplitude / input_amplitude;
+        gain_dB = 20 * log10(gain);
+        
+        fprintf('Input Amplitude:         %.4f\n', input_amplitude);
+        fprintf('Output Amplitude:        %.4f\n', output_amplitude);
+        fprintf('Gain (Magnitude Ratio):  %.4f\n', gain);
+        fprintf('Gain (dB):               %.2f dB\n', gain_dB);
+        
+        % estimate phase shift
+        % find zero crossings
+        u_ss = u(ss_start:end);
+        zero_cross_in = find(diff(sign(u_ss)) ~= 0, 1);
+        zero_cross_out = find(diff(sign(y_ss)) ~= 0, 1);
+        
+        if ~isempty(zero_cross_in) && ~isempty(zero_cross_out)
+            time_delay = t_ss(zero_cross_out) - t_ss(zero_cross_in);
+            phase_shift = -(time_delay * freq * 360);  % in degrees
+            fprintf('Phase Shift:             %.2f degrees\n', phase_shift);
+        end
+    end
+    
+catch ME
+    disp(' ');
+    disp('Warning: Could not calculate some performance metrics.');
+    disp(['Reason: ' ME.message]);
+end
+
 % calculate poles and zeros
 figure('Name', 'System Characteristics', 'Position', [150 150 800 600]);
 
