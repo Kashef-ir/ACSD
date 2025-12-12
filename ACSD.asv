@@ -239,8 +239,7 @@ if create_simulink == 1
         set_param([model_name '/' block_name], 'Numerator', mat2str(num_i));
         set_param([model_name '/' block_name], 'Denominator', mat2str(den_i));
       
-        % set position (vertical
-        % column)
+        % set position (vertical column)
         y_pos = y_base + (i-1)*100;
         set_param([model_name '/' block_name], 'Position', [x_pos y_pos x_pos+100 y_pos+40]);
     end
@@ -280,7 +279,7 @@ if create_simulink == 1
             end
         end
       
-        % Connect last block to output
+        % connect last block to output
         if ~isempty(last_block)
             try
                 add_line(model_name, [last_block '/1'], 'Output/1', 'autorouting', 'on');
@@ -290,7 +289,7 @@ if create_simulink == 1
             end
         end
       
-        % Auto-arrange layout
+        % auto arrange layout
         Simulink.BlockDiagram.arrangeSystem(model_name);
       
         disp(['Simulink model "' model_name '" has been created successfully.']);
@@ -303,3 +302,4 @@ end
 
 disp(' ');
 disp('=== Program finished ===');
+

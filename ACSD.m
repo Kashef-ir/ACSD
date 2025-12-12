@@ -301,4 +301,81 @@ if create_simulink == 1
 end
 
 disp(' ');
-disp('=== Program finished ===');
+disp('Program finished');
+
+% helper functions 
+function [first_block, last_block] = build_connections(model_name, conn_str, num_blocks)
+    % simple connection creator function
+  
+    % remove extra spaces
+    conn_str = strtrim(conn_str);
+  
+    % simple series: series(G1,G2)
+    if startsWith(conn_str, 'series(G') && ~contains(conn_str(8:end), 'series') && ~contains(conn_str(8:end), 'parallel') && ~contains(conn_str(8:end), 'feedback')
+        tokens = regexp(conn_str, 'series\(G(\d+),G(\d+)\)', 'tokens');
+        if ~isempty(tokens)
+            idx1 = str2double(tokens{1}{1});
+            idx2 = str2double(tokens{1}{2});
+          
+            block1 = sprintf('G%d', idx1);
+            block2 = sprintf('G%d', idx2);
+          
+            add_line(model_name, [block1 '/1'], [block2 '/1'], 'autorouting', 'on');
+            first_block = block1;
+            last_block = block2;
+            return;
+        end
+      
+    % simple parallel: parallel(G1,G2)
+    elseif startsWith(conn_str, 'parallel(G') && ~contains(conn_str(10:end), 'series') && ~contains(conn_str(10:end), 'parallel') && ~contains(conn_str(10:end), 'feedback')
+        tokens = regexp(conn_str, 'parallel\(G(\d+),G(\d+)\)', 'tokens');
+        if ~isempty(tokens)
+            idx1 = str2double(tokens{1}{1});
+            idx2 = str2double(tokens{1}{2});
+          
+            block1 = sprintf('G%d', idx1);
+            block2 = sprintf('G%d', idx2);
+          
+            % Add Sum block for parallel output
+            add_block('simulink/Math Operations/Sum', [model_name '/Sum_Out']);
+            set_param([model_name '/Sum_Out'], 'Inputs', '++');
+          
+            % Connect block outputs to Sum
+            add_line(model_name, [block1 '/1'], 'Sum_Out/1', 'autorouting', 'on');
+            add_line(model_name, [block2 '/1'], 'Sum_Out/2', 'autorouting', 'on');
+          
+            first_block = []; % input will be branched
+            last_block = 'Sum_Out';
+            return;
+        end
+      
+    % simple feedback: feedback(G1,G2)
+    elseif startsWith(conn_str, 'feedback(G') && ~contains(conn_str(10:end), 'series') && ~contains(conn_str(10:end), 'parallel') && ~contains(conn_str(10:end), 'feedback')
+        tokens = regexp(conn_str, 'feedback\(G(\d+),G(\d+)\)', 'tokens');
+        if ~isempty(tokens)
+            idx1 = str2double(tokens{1}{1});
+            idx2 = str2double(tokens{1}{2});
+          
+            block1 = sprintf('G%d', idx1); % forward path
+            block2 = sprintf('G%d', idx2); % feedback path
+          
+            % add sum block for feedback
+            add_block('simulink/Math Operations/Sum', [model_name '/Sum_FB']);
+            set_param([model_name '/Sum_FB'], 'Inputs', '+-');
+          
+            % connections
+            add_line(model_name, 'Sum_FB/1', [block1 '/1'], 'autorouting', 'on');
+            add_line(model_name, [block1 '/1'], [block2 '/1'], 'autorouting', 'on');
+            add_line(model_name, [block2 '/1'], 'Sum_FB/2', 'autorouting', 'on');
+          
+            first_block = 'Sum_FB';
+            last_block = block1;
+            return;
+        end
+    else
+        % complex structure - needs recursive parser (will be done in next updates)
+        warning('Complex structure detected. Please make connections manually.');
+        first_block = [];
+        last_block = [];
+    end
+end
